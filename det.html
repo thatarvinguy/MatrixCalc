@@ -4,7 +4,7 @@
     <title>MatrixCalc</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-    <link rel="stylesheet" href="index.css" type="text/css">
+    <!-- <link rel="stylesheet" href="index.css" type="text/css"> -->
 </head>
 
 <body style="background-color: #958686; text-align: center;">
@@ -17,10 +17,19 @@
         <table style="width:10%;" align="center" id="main-table">
 
         </table>
-        <input type="button" id="det-button" class="btn" value="Get determinant">
+        <input type="button" id="det-button" class="btn" value="Get inverse/determinant">
+        <br/>
+        <br/>
+        <h4>The determinant is: </h4>
+        <h3 id="det-label"></h3>
         <br/>
         <br/>
         <br/>
+        <h4>The inverse is: </h4>
+        <h3 id="inv-label"></h3>
+        <table style="width:10%;" align="center" id="inverse-table">
+
+        </table>
     </div>
     <div id="by">
         <p>Find the source code <a href="https://github.com/thatarvinguy/MatrixCalc" target="_blank">here</a>.</p>
@@ -43,7 +52,7 @@
         }
     </style>
     <script>
-        function getSubMatrix(fullMatrix, row, col) {
+        function getSubMatrix(fullMatrix, row, col) { //refactor
             var rowNums = [];
             var colNums = [];
             var dims = fullMatrix.length;
@@ -62,6 +71,15 @@
             return matrix;
         }
 
+        function multiplyMatrix(mx, mult) {
+            for (var i = 0; i < mx.length; i++) {
+                for (var j = 0; j < mx.length; j++) {
+                    mx[i][j] *= mult;
+                }
+            }
+            return mx;
+        }
+
         function getDet(mx) {
             if (mx.length == 0) {
                 return 1;
@@ -75,7 +93,36 @@
             }
         }
 
+        function transposeMatrix(mx) {
+            var newmx = [];
+            for (var i = 0; i < mx.length; i++) {
+                var row = []
+                for (var j = 0; j < mx.length; j++) {
+                    row.push(mx[j][i]); //other way didnt work btw
+                }
+                newmx.push(row)
+            }
+            return newmx;
+        }
+
+        function getCofactorMatrix(mx) {
+            var cfmx = [];
+            for (var i = 1; i <= mx.length; i++) {
+                var row = [];
+                for (var j = 1; j <= mx.length; j++) {
+                    var det = getDet(getSubMatrix(mx, i, j));
+                    if ((i + j) % 2 == 0) row.push(det);
+                    else row.push(det * -1);
+                }
+                cfmx.push(row);
+            }
+            return cfmx;
+        }
+
         function generateMatrixField() {
+            $("#inverse-table").empty();
+            $("#inv-label").html("");
+            $("#det-label").html("");
             var size = parseInt($("#size-box").val());
             if (!isNaN(size) && size > 0) {
                 var table = $("#main-table");
@@ -88,7 +135,7 @@
                         input.addClass("input");
                         input.attr("type", "number");
                         input.attr("placeholder", "#");
-                        input.attr("id", "" + i + "-" + j);
+                        input.attr("id", "in-" + i + "-" + j);
                         td.append(input);
                         tr.append(td);
                     }
@@ -96,6 +143,26 @@
                 }
             } else if ($("#size-box").val().trim() != "") {
                 alert("Invalid input");
+            }
+        }
+
+        function generateInverseField(size, inversemx) {
+            var table = $("#inverse-table");
+            table.empty();
+            for (var i = 1; i <= size; i++) {
+                var tr = $(document.createElement("tr"));
+                for (var j = 1; j <= size; j++) {
+                    var td = $(document.createElement("td"));
+                    var input = $(document.createElement("input"));
+                    input.addClass("input-2x");
+                    input.attr("readonly", "readonly");
+                    input.attr("type", "number");
+                    input.attr("id", "out-" + i + "-" + j);
+                    input.val(inversemx[i - 1][j - 1]);
+                    td.append(input);
+                    tr.append(td);
+                }
+                table.append(tr);
             }
         }
 
@@ -110,17 +177,22 @@
         });
 
         $("#det-button").on("click", function() {
+            $("#inv-label").html("");
             var inputs = $(".matrix-holder").find(".input");
             var size = Math.sqrt(inputs.length);
             var mx = [];
             for (var i = 1; i <= size; i++) {
                 var row = [];
                 for (var j = 1; j <= size; j++) {
-                    row.push($("#" + i + "-" + j).val());
+                    row.push($("#in-" + i + "-" + j).val());
                 }
                 mx.push(row);
             }
-            alert("The determinant of this matrix is " + getDet(mx));
+            var det = getDet(mx);
+            var inversemx = multiplyMatrix(transposeMatrix(getCofactorMatrix(mx)), (1 / det));
+            $("#det-label").html(det);
+            if (det != 0) generateInverseField(size, inversemx);
+            else $("#inv-label").html("Undefined because determinant is 0");
         });
     </script>
 
