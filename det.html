@@ -1,0 +1,123 @@
+<html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <link rel="stylesheet" href="index.css" type="text/css">
+</head>
+
+<body style="background-color: #958686; text-align: center;">
+    <h2>MatrixCalc 1.0</h2><h5>More features coming soon...</h5>
+    <br/>
+    <h4>Choose Matrix Size: </h4>
+    <input id="size-box" class="input-2x" min="0" type="number" placeholder="Size" value="3"></input>
+    <div class="matrix-holder">
+        <table style="width:10%;" align="center" id="main-table">
+
+        </table>
+        <input type="button" id="det-button" class="btn" value="Get determinant"><br/><br/><br/>
+    </div>
+    <div id="by">
+        <p>Find the source code <a href="https://github.com/thatarvinguy/MatrixCalc">here</a>.</p>
+    </div>
+    <style>
+        #by {
+            margin: 2em;
+        }
+        .input {
+            width: 4em;
+            height: 2em;
+            margin: .5em;
+        }
+        .input-2x {
+            width: 8em;
+            height: 2em;
+            margin: .5em;
+        }
+    </style>
+    <script>
+        function getSubMatrix(fullMatrix, row, col) {
+            var rowNums = [];
+            var colNums = [];
+            var dims = fullMatrix.length;
+            for (var i = 1; i <= dims; i++) {
+                if (row != i) rowNums.push(i);
+                if (col != i) colNums.push(i);
+            }
+            var matrix = [];
+            for (var i = 0; i < rowNums.length; i++) {
+                var row = [];
+                for (var j = 0; j < colNums.length; j++) {
+                    row.push(fullMatrix[rowNums[i] - 1][colNums[j] - 1]);
+                }
+                matrix.push(row);
+            }
+            return matrix;
+        }
+
+        function getDet(mx) {
+            if (mx.length == 0) {
+                return 1;
+            } else {
+                var det = 0;
+                for (var i = 1; i <= mx.length; i++) {
+                    if (i % 2 == 0) det -= getDet(getSubMatrix(mx, 1, i)) * mx[0][i - 1];
+                    else det += getDet(getSubMatrix(mx, 1, i)) * mx[0][i - 1];
+                }
+                return det;
+            }
+        }
+
+        function generateMatrixField() {
+            var size = parseInt($("#size-box").val());
+            if (!isNaN(size) && size > 0) {
+                var table = $("#main-table");
+                table.empty();
+                for (var i = 1; i <= size; i++) {
+                    var tr = $(document.createElement("tr"));
+                    for (var j = 1; j <= size; j++) {
+                        var td = $(document.createElement("td"));
+                        var input = $(document.createElement("input"));
+                        input.addClass("input");
+                        input.attr("type", "number");
+                        input.attr("placeholder", "#");
+                        input.attr("id", "" + i + j);
+                        td.append(input);
+                        tr.append(td);
+                    }
+                    table.append(tr);
+                }
+            } else if ($("#size-box").val().trim() != "") {
+                alert("Invalid input");
+            }
+        }
+
+        generateMatrixField();
+
+        $("#size-box").on("change", function() {
+            generateMatrixField();
+        });
+
+        $("#size-box").on("keyup", function() {
+            generateMatrixField();
+        });
+
+        $("#det-button").on("click", function() {
+            var inputs = $(".matrix-holder").find(".input");
+            var size = Math.sqrt(inputs.length);
+            var mx = [];
+            for (var i = 1; i <= size; i++) {
+                var row = [];
+                for (var j = 1; j <= size; j++) {
+                    row.push($("#" + i + j).val());
+                }
+                mx.push(row);
+            }
+            alert("The determinant of this matrix is " + getDet(mx));
+        });
+    </script>
+
+</body>
+
+
+</html>
