@@ -11,6 +11,7 @@
     <h2>MatrixCalc 1.0</h2>
     <h5>More features coming soon...</h5>
     <br/>
+    <h3>Find Inverse/Determinant of Matrix</h3>
     <h4>Choose Matrix Size: </h4>
     <input id="size-box" class="input-2x" min="0" type="number" placeholder="Size" value="3"></input>
     <div class="matrix-holder">
@@ -31,6 +32,16 @@
 
         </table>
     </div>
+    <hr>
+    <h3>Solve a System of Equations</h3>
+    <h4>Choose System Size: </h4>
+    <input id="system-size-box" class="input-2x" min="0" type="number" placeholder="Size" value="3"></input>
+    <div class="system-holder">
+
+    </div>
+    <input type="button" id="sol-button" class="btn" value="Get System Solutions">
+    <h4>Solutions: </h4><h4 id="sol-label"></h4>
+    <hr>
     <div id="by">
         <p>Find the source code <a href="https://github.com/thatarvinguy/MatrixCalc" target="_blank">here</a>.</p>
     </div>
@@ -47,6 +58,12 @@
 
         .input-2x {
             width: 8em;
+            height: 2em;
+            margin: .5em;
+        }
+
+        .eq-box {
+            width: 16em;
             height: 2em;
             margin: .5em;
         }
@@ -103,6 +120,145 @@
                 newmx.push(row)
             }
             return newmx;
+        }
+
+        function getTerms(half) {
+            return half.match(/[+-]\d*\.?\d*[a-zA-Z]*/g);
+        };
+        String.prototype.replaceAll = function(t, r) {
+            return this.split(t).join(r);
+        };
+        String.prototype.cleanWhite = function() {
+            return this.split(" ").join("");
+        };
+
+        function simplifyEquations(equations) {
+            var sEqs = [];
+            var allVariables = [];
+            for (var j = 0; j < equations.length; j++) {
+                var equation = equations[j].cleanWhite();
+                var halves = equation.split("=");
+                if (halves.length == 2) {
+                    if (["+", "-"].indexOf(halves[0].substring(0, 1)) == -1) {
+                        halves[0] = "+" + halves[0];
+                    }
+                    if (["+", "-"].indexOf(halves[1].substring(0, 1)) == -1) {
+                        halves[1] = "+" + halves[1];
+                    }
+                    var posTerms = getTerms(halves[0]);
+                    var negTerms = getTerms(halves[1]);
+                    for (var i = 0; i < negTerms.length; i++) {
+                        if (negTerms[i].substring(0, 1) == "+") negTerms[i] = negTerms[i].replaceAll("+", "-");
+                        else negTerms[i] = negTerms[i].replaceAll("-", "+");
+                    }
+                    var allTerms = posTerms.concat(negTerms);
+                    var matchedTerms = [];
+                    for (var i = 0; i < allTerms.length; i++) {
+                        var isNumOnly = /^[+-]\d*\.?\d*$/.test(allTerms[i]);
+                        if (isNumOnly) {
+                            matchedTerms.push({
+                                "a0": parseFloat(allTerms[i]) * -1
+                            });
+                        } else {
+                            var variable = allTerms[i].match(/[a-zA-Z]+/g)[0]; // gets the y from 13.5y
+                            var number = allTerms[i].match(/[+-]\d*\.?\d*/g)[0]; //gets the 13.5 from the 13.5y
+                            if (number == "+" || number == "-") {
+                                number = parseFloat(number + "1");
+                            }
+                            var obj = {};
+                            obj[variable] = parseFloat(number);
+                            matchedTerms.push(obj);
+                        }
+                    }
+                    var allAddedValues = {};
+                    for (var i = 0; i < matchedTerms.length; i++) {
+                        var key = Object.keys(matchedTerms[i])[0];
+                        if (key != "a0") allVariables.push(key);
+                        var value = matchedTerms[i][key];
+                        if (!allAddedValues[key]) {
+                            allAddedValues[key] = 0;
+                        }
+                        if (!allAddedValues.a0) {
+                            allAddedValues.a0 = 0;
+                        }
+                        allAddedValues[key] += value;
+                    }
+
+                    sEqs.push(allAddedValues);
+                } else {
+                    alert("Invalid input");
+                    return false;
+                }
+            }
+            allVariables = allVariables.reduce(function(a, b) {
+                if (a.indexOf(b) < 0) a.push(b);
+                return a;
+            }, []);
+            if (sEqs.length == allVariables.length){
+                return {
+                    "equations": sEqs,
+                    "variables": allVariables
+                };
+            }
+            else {
+                alert("Wrong # of variables");
+                return false;
+            }
+        }
+
+        function getMatrix(equations) {
+            var matrix = [];
+            var adds = [];
+            for (var i = 0; i < equations.equations.length; i++) {
+                var row = [];
+                var equation = equations.equations[i];
+                var variables = equations.variables;
+                adds.push(equation.a0);
+                for (var j = 0; j < variables.length; j++) {
+                    if (variables[j] != "a0") {
+                        if (equation[variables[j]]) {
+                            row.push(equation[variables[j]]);
+                        } else {
+                            row.push(0);
+                        }
+                    }
+                }
+                matrix.push(row);
+            }
+            return {
+                "matrix": matrix,
+                "adds": adds,
+                "variables": variables
+            };
+        }
+
+        function evaluateMatrix(mav){
+            var matrix = mav.matrix;
+            var adds = mav.adds;
+            var variables = mav.variables;
+            var mainDet = getDet(matrix);
+            var dets = [];
+            for (var i = 0; i < adds.length; i++){
+                var newMatrix = [];
+                for (var j = 0; j < matrix.length; j++){
+                    var row = [];
+                    for (var k = 0; k < matrix[j].length; k++){
+                        if (i == k) row.push(adds[j]);
+                        else row.push(matrix[j][k]);
+                    }
+                    newMatrix.push(row);
+                }
+                dets.push(getDet(newMatrix));
+            }
+            var solutions = {};
+            for (var i = 0; i < dets.length; i++){
+                solutions[variables[i]] = dets[i]/mainDet;
+            }
+            return solutions;
+        }
+
+        function solve(equations){
+            return evaluateMatrix(getMatrix(simplifyEquations(equations)));
         }
 
         function getCofactorMatrix(mx) {
@@ -165,7 +321,19 @@
                 table.append(tr);
             }
         }
+        function generateEquationFields(){
+            var holder = $(".system-holder");
+            holder.empty();
+            var size = parseInt($("#system-size-box").val());
+            for (var i = 1; i <= size; i++){
+                var input = $(document.createElement("input"));
+                input.addClass("eq-box");
+                input.attr("placeholder", "Equation #" + i);
+                holder.append(input);
+            }
+        }
 
+        generateEquationFields();
         generateMatrixField();
 
         $("#size-box").on("change", function() {
@@ -174,6 +342,23 @@
 
         $("#size-box").on("keyup", function() {
             generateMatrixField();
+        });
+
+        $("#system-size-box").on("keyup", function() {
+            generateEquationFields();
+        });
+
+        $("#system-size-box").on("change", function() {
+            generateEquationFields();
+        });
+
+        $("#sol-button").on("click", function(){
+            var inputs = $(".system-holder").find(".eq-box");
+            var values = [];
+            for (var i = 0; i < inputs.length; i++){
+                values.push($(inputs[i]).val());
+            }
+            $("#sol-label").html(JSON.stringify(solve(values)));
         });
 
         $("#det-button").on("click", function() {
@@ -191,6 +376,7 @@
             var det = getDet(mx);
             var inversemx = multiplyMatrix(transposeMatrix(getCofactorMatrix(mx)), (1 / det));
             $("#det-label").html(det);
+            $("#inverse-table").empty();
             if (det != 0) generateInverseField(size, inversemx);
             else $("#inv-label").html("Undefined because determinant is 0");
         });
